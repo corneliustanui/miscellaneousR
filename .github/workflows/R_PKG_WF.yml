@@ -1,40 +1,31 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-#
-# See https://github.com/r-lib/actions/tree/master/examples#readme for
-# additional example workflows available for the R community.
-
-name: R
-
-on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        r-version: ['4.3.1']
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up R ${{ matrix.r-version }}
-        uses: r-lib/actions/setup-r@f57f1301a053485946083d7a45022b278929a78a
-        with:
-          r-version: ${{ matrix.r-version }}
-      - name: Install dependencies
-        run: |
-          install.packages(c("remotes", "rcmdcheck"))
-          remotes::install_deps(dependencies = TRUE)
-        shell: Rscript {0}
-      - name: Check
-        run: rcmdcheck::rcmdcheck(args = "--no-manual", error_on = "error")
-        shell: Rscript {0}
+name: 'check-r-package'
+description: 'Action to check R package with rcmdcheck. Assumes that rcmdcheck has already been installed.'
+author: 'Jim Hester'
+inputs:
+  args:
+    description: 'Arguments to pass to the `args` parameter of rcmdcheck'
+    default: '"--no-manual", "--as-cran"'
+  build_args:
+    description: 'Arguments to pass to the `build_args` parameter of rcmdcheck'
+    default: '"--no-manual"'
+  error-on:
+    description: 'What type of result should cause a build error?'
+    default: '"warning"'
+  check-dir:
+    description: 'Where should the check output go?'
+    default: '"check"'
+  working-directory:
+    description: 'Using the working-directory keyword, you can specify the working directory of where "rcmdcheck::rcmdcheck" is run.'
+    default: '.'
+    
+runs:
+  using: "composite"
+  steps:
+    - name: Check
+      env:
+        _R_CHECK_CRAN_INCOMING_: false
+      run: |
+        options(crayon.enabled = TRUE)
+        rcmdcheck::rcmdcheck(args = c(${{ inputs.args }}), build_args = c(${{ inputs.build_args }}), error_on = ${{ inputs.error-on }}, check_dir = ${{ inputs.check-dir }})
+      shell: Rscript {0}
+      working-directory: ${{ inputs.working-directory }}
